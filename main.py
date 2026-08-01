@@ -3,11 +3,11 @@ import telebot
 from telebot.types import InputMediaPhoto
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from flask import Flask
+import threading
 
-# Tải biến môi trường từ file .env (khi chạy ở máy tính)
+# 1. Load dotenv
 load_dotenv()
-
-# Lấy thông tin bảo mật một cách an toàn
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -15,6 +15,17 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# 2.Web server
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Bot đang hoạt động ngon lành 24/7!"
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+# 3. Bot features
 @bot.message_handler(content_types=['photo'])
 def get_photo_id(message):
     file_id = message.photo[-1].file_id
@@ -53,5 +64,9 @@ def search_room(message):
     except Exception as e:
         bot.send_message(message.chat.id, f"⚠️ Lỗi kết nối dữ liệu: {e}")
 
-print("✅ Bot đang chạy...")
-bot.infinity_polling()
+if __name__ == "__main__":
+    # Run web
+    threading.Thread(target=run_web_server, daemon=True).start()
+    print("✅ Bot và Web Server đang chạy...")
+    # Run Bot
+    bot.infinity_polling()
